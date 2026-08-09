@@ -46,7 +46,6 @@ int main() {
   int lastHeight{-1};
   int albumSize{-1};
   int abreast{0};
-  int screenHeight{-1};
   BeginDrawing(); EndDrawing();  // Make first `GetScreenWidth()` not `1`.
   while (!WindowShouldClose()) {
     {
@@ -62,7 +61,7 @@ int main() {
     }
 
     {
-      screenHeight = GetScreenHeight();
+      auto screenHeight{GetScreenHeight()};
       if (lastHeight != screenHeight) {
         lastHeight = screenHeight;
 
@@ -79,8 +78,8 @@ int main() {
       int y{0};
       for (const auto& album : albums) {
         if (
-          scrollPos <= x * albumSize
-          && scrollPos + screenHeight > x * albumSize
+          scrollPos <= y * albumSize
+          && scrollPos + lastHeight > y * albumSize
         ) {
           DrawTexturePro(
             album.cover,

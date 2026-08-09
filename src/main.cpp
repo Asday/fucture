@@ -41,34 +41,35 @@ int main() {
   }
 
   int scrollPos{0};
-  int scrollMax{0};
-  int lastWidth{-1};
-  int lastHeight{-1};
+  int screenWidth{-1};
+  int screenHeight{-1};
   int albumSize{-1};
   int abreast{0};
+  int rows{0};
   BeginDrawing(); EndDrawing();  // Make first `GetScreenWidth()` not `1`.
   while (!WindowShouldClose()) {
     {
-      auto screenWidth{GetScreenWidth()};
-      if (lastWidth != screenWidth) {
-        lastWidth = screenWidth;
+      auto newWidth{GetScreenWidth()};
+      if (screenWidth != newWidth) {
+        screenWidth = newWidth;
 
         abreast = (screenWidth - SCROLLBAR_WIDTH) / MAXIMUM_ALBUM_WIDTH;
         if (abreast <= 0) abreast = 1;
+        rows = ((static_cast<int>(albums.size()) + abreast - 1) / abreast);
         albumSize = (screenWidth - SCROLLBAR_WIDTH) / abreast;
         if (albumSize > MAXIMUM_ALBUM_WIDTH) albumSize = MAXIMUM_ALBUM_WIDTH;
       }
     }
+    screenHeight = GetScreenHeight();
 
-    {
-      auto screenHeight{GetScreenHeight()};
-      if (lastHeight != screenHeight) {
-        lastHeight = screenHeight;
+    if (IsKeyPressed(KEY_DOWN)) scrollPos += albumSize;
+    if (IsKeyPressed(KEY_UP)) scrollPos -= albumSize;
+    if (IsKeyPressed(KEY_PAGE_DOWN)) scrollPos += screenHeight;
+    if (IsKeyPressed(KEY_PAGE_UP)) scrollPos -= screenHeight;
 
-        int rows {((static_cast<int>(albums.size()) + abreast - 1) / abreast)};
-        scrollMax = (albumSize * rows) - screenHeight;
-        if (scrollMax < 0) scrollMax = 0;
-      }
+    if (scrollPos < 0) scrollPos = 0;
+    if (scrollPos > (rows * albumSize) - screenHeight) {
+      scrollPos = (rows * albumSize) - screenHeight;
     }
 
     BeginDrawing();
@@ -76,10 +77,19 @@ int main() {
       ClearBackground(BLACK);
       int x{0};
       int y{0};
+      int viewMax{scrollPos + screenHeight};
       for (const auto& album : albums) {
+        // Either the top's gotta be in the viewport, or the bottom
+        // has gotta be in the viewport, or the top has got to be above
+        // the top of the viewport and the bottom has got to be below
+        // the bottom of the viewport, to be visible.
+        int top{y * albumSize};
+        int bottom{((y + 1) * albumSize) - 1};
         if (
-          scrollPos <= y * albumSize
-          && scrollPos + lastHeight > y * albumSize
+          (top >= scrollPos && top <= viewMax)
+          || (bottom >= scrollPos && bottom <= viewMax)
+          || (top < scrollPos && bottom > viewMax)
+
         ) {
           DrawTexturePro(
             album.cover,
@@ -91,7 +101,7 @@ int main() {
             },
             {
               static_cast<float>(x * albumSize),
-              static_cast<float>(y * albumSize),
+              static_cast<float>((y * albumSize) - scrollPos),
               static_cast<float>(albumSize),
               static_cast<float>(albumSize)
             },
@@ -104,6 +114,28 @@ int main() {
         x += 1;
         if (x >= abreast) { x = 0; y += 1; }
       }
+
+      // Gutter represents the height of the content, handle height
+      // represents the height of the view.
+      //
+      // Handle is defined by its top edge.
+      DrawRectangle(
+        screenWidth - SCROLLBAR_WIDTH,
+        0,
+        SCROLLBAR_WIDTH,
+        screenHeight,
+        DARKGRAY
+      );
+
+      DrawRectangle(
+        screenWidth - SCROLLBAR_WIDTH,
+        // `scrollPos` scaled by however much the gutter is scaled.
+        // TODO: this might be horribly wrong.
+        scrollPos * screenHeight / (rows * albumSize),
+        SCROLLBAR_WIDTH,
+        (screenHeight * screenHeight) / (rows * albumSize),
+        GRAY
+      );
     }
     EndDrawing();
   }

@@ -1,7 +1,10 @@
 #include "raylib.h"
 
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <sys/types.h>
+#include <unistd.h>
 #include <vector>
 
 static constexpr int SCROLLBAR_WIDTH{17};
@@ -14,6 +17,24 @@ struct Album {
 
 std::ostream& operator<<(std::ostream& os, const Album& a) {
   return os << a.path;
+}
+
+void playAlbum(Album a) {
+  if (fork() != 0) return;
+  if (setsid() < 0) std::exit(EXIT_FAILURE);
+  pid_t pid = fork();
+  if (pid < 0) std::exit(EXIT_FAILURE);
+  if (pid > 0) std::exit(EXIT_SUCCESS);
+
+  std::vector<char*> argv;
+  argv.reserve(2);
+  argv.push_back(const_cast<char*>("mpv"));
+
+  auto pathStr{a.path.string()};
+  argv.push_back(const_cast<char*>(pathStr.c_str()));
+  argv.push_back(nullptr);
+  execvp(argv[0], argv.data());
+  std::exit(EXIT_FAILURE);
 }
 
 int main() {
@@ -147,9 +168,7 @@ int main() {
         y /= albumSize;
         x /= albumSize;
         auto i{static_cast<decltype(albums)::size_type>((y * abreast) + x)};
-        if (i < albums.size()) {
-          std::clog << albums[i] << std::endl;
-        }
+        if (i < albums.size()) playAlbum(albums[i]);
       }
     }
 

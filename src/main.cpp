@@ -20,7 +20,7 @@ int main() {
   SetTraceLogLevel(LOG_WARNING);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(1, 1, "fucture");
-  SetTargetFPS(30);
+  SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
   SetExitKey(KEY_NULL);
 
   const std::filesystem::path root{"/home/asday/bombs"};
@@ -138,6 +138,28 @@ int main() {
       );
     }
     EndDrawing();
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      int x{GetMouseX()};
+      if (x <= albumSize * abreast) {
+        int y{GetMouseY()};
+        y += scrollPos;
+        y /= albumSize;
+        x /= albumSize;
+        auto i{static_cast<decltype(albums)::size_type>((y * abreast) + x)};
+        if (i < albums.size()) {
+          std::clog << albums[i] << std::endl;
+        }
+      }
+    }
+
+    if (false /*scrollStart != -1*/) {
+      SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
+    } else if (IsCursorOnScreen() || IsWindowFocused()) {
+      SetTargetFPS(30);
+    } else {
+      SetTargetFPS(15);
+    }
   }
 
   CloseWindow();

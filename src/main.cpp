@@ -27,7 +27,7 @@ void playAlbum(Album a) {
   if (pid > 0) std::exit(EXIT_SUCCESS);
 
   std::vector<char*> argv;
-  argv.reserve(2);
+  argv.reserve(3);
   argv.push_back(const_cast<char*>("mpv"));
 
   auto pathStr{a.path.string()};
